@@ -67,31 +67,33 @@ if submit_button:
         ws.column_dimensions['A'].width = 20
         ws.column_dimensions['B'].width = 60
 
-        # 2. 사진 배치 (데이터 아래쪽으로 세로로 쌓기)
+       # 2. 사진 배치 (더 안전한 방식으로 수정)
         if uploaded_files:
-            current_row = len(content) + 1
-            ws.cell(row=current_row, column=1).value = "현장사진"
-            ws.cell(row=current_row, column=1).fill = label_fill
-            ws.cell(row=current_row, column=1).border = border
-            ws.merge_cells(start_row=current_row, start_column=1, end_row=current_row, end_column=2)
+            current_row = len(content) + 2 # 데이터 아래 한 줄 띄우고 시작
             
-            current_row += 1
             for uploaded_file in uploaded_files:
+                # 라벨 표시
+                ws.cell(row=current_row, column=1).value = "현장사진"
+                ws.cell(row=current_row, column=1).fill = label_fill
+                ws.cell(row=current_row, column=1).border = border
+                
+                # 이미지 처리
                 img = PILImage.open(uploaded_file)
-                # 가로 비율 유지하며 크기 조정
-                img.thumbnail((400, 400)) 
+                # 엑셀에 적당한 크기로 리사이즈 (가로 약 300픽셀)
+                img.thumbnail((300, 300))
                 
                 img_byte_arr = io.BytesIO()
+                # PNG 포맷으로 확실히 지정해서 저장
                 img.save(img_byte_arr, format='PNG')
+                img_byte_arr.seek(0) # 커서를 맨 앞으로
+                
                 img_for_excel = Image(img_byte_arr)
                 
+                # B열 해당 행에 사진 삽입
                 ws.add_image(img_for_excel, f'B{current_row}')
-                ws.row_dimensions[current_row].height = 250
-                current_row += 1
-
-        excel_data = io.BytesIO()
-        wb.save(excel_data)
-        excel_data.seek(0)
-        
-        st.success("✅ 세로형 보고서가 생성되었습니다!")
-        st.download_button(label="📁 세로형 엑셀 다운로드", data=excel_data, file_name=f"입회보고서_{store_name}.xlsx")
+                
+                # 사진이 보일 수 있게 행 높이를 대폭 키움 (중요!)
+                ws.row_dimensions[current_row].height = 230 
+                ws.cell(row=current_row, column=2).border = border
+                
+                current_row += 1 # 다음 사진은 아래 행에
